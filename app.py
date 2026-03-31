@@ -24,19 +24,34 @@ def load_data(file_bytes):
     df["registration_date"] = pd.to_datetime(df["registration_date"], errors="coerce")
     df["reg_month"] = df["registration_date"].dt.to_period("M").astype(str)
 
-    # Acquisition source
+    # Acquisition source — detect all tracker columns present in the file
+    tracker_cols = ["gclid", "gbraid", "wbraid", "cxd", "affid",
+                    "afp", "utm_campaign", "afp1", "afp2", "afp3"]
+    for c in tracker_cols:
+        if c not in df.columns:
+            df[c] = ""
+        else:
+            df[c] = df[c].fillna("")
+
     def source(row):
         if row["gclid"] or row["gbraid"] or row["wbraid"]:
             return "Google Ads"
         if row["cxd"]:
             return "CXD"
+        if row["afp"]:
+            return "AFP"
+        if row["utm_campaign"]:
+            return f"UTM: {row['utm_campaign']}"
+        if row["afp1"]:
+            return "AFP1"
+        if row["afp2"]:
+            return "AFP2"
+        if row["afp3"]:
+            return "AFP3"
         if row["affid"]:
             return "Affiliate"
         return "Organic/Direct"
 
-    str_cols = ["gclid", "gbraid", "wbraid", "cxd", "affid"]
-    for c in str_cols:
-        df[c] = df[c].fillna("")
     df["source"] = df.apply(source, axis=1)
 
     # Ensure numeric
